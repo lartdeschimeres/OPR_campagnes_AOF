@@ -1,1 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Campagne Dark Fantasy - Les Royaumes Déchus</title>
+  <style>
+    body {
+      background-color: #111;
+      color: white;
+      font-family: Arial;
+      padding: 20px;
+    }
+    .territoire {
+      width: 250px;
+      height: 350px;
+      border: 2px solid #555;
+      border-radius: 10px;
+      padding: 10px;
+      margin: 10px;
+      background-color: #222;
+      display: inline-block;
+      vertical-align: top;
+    }
+    .territoire:hover {
+      background-color: #333;
+      cursor: pointer;
+    }
+    .icone-territoire {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+    }
+    .ressources {
+      margin: 20px;
+      padding: 10px;
+      border: 1px solid #555;
+      border-radius: 5px;
+      display: inline-block;
+    }
+    button {
+      margin: 5px;
+      padding: 5px 10px;
+      background-color: #444;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #555;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <h1>Les Royaumes Déchus</h1>
+
+  <!-- Boutons de sauvegarde/import -->
+  <div>
+    <button onclick="sauvegarderCampagne()">Sauvegarder la Campagne</button>
+    <button onclick="document.getElementById('fichier-import').click()">Importer une Campagne</button>
+    <input type="file" id="fichier-import" style="display: none;" accept=".html" onchange="importerCampagne(event)">
+  </div>
+
+  <!-- Ressources -->
+  <div class="ressources">
+    <h2>Ressources</h2>
+    <p>Or : <span id="ressource-or">5</span></p>
+    <p>Influence : <span id="ressource-influence">3</span></p>
+    <p>Connaissance : <span id="ressource-connaissance">2</span></p>
+  </div>
+
+  <!-- Territoires -->
+  <div id="citadelle" class="territoire">
+    <h3>🏰 Citadelle des Lamentations</h3>
+    <img src="icones/citadelle.png" alt="Citadelle" class="icone-territoire">
+    <p><strong>Contrôlé par :</strong> <span id="controle-citadelle">Neutre</span></p>
+    <p><strong>État :</strong> <span id="etat-citadelle">Intact</span></p>
+    <input type="checkbox" id="avantage-citadelle" disabled>
+    <label for="avantage-citadelle">+2 en défense</label>
+    <div class="dilemme">
+      <p><strong>Dilemme :</strong> Les esprits demandent vengeance.</p>
+      <button onclick="resoudreDilemme('citadelle', 'aider')">Aider les esprits</button>
+      <button onclick="resoudreDilemme('citadelle', 'bannir')">Bannir les esprits</button>
+    </div>
+    <p id="risque-citadelle"></p>
+  </div>
+
+  <div id="foret" class="territoire">
+    <h3>🌳 Forêt des Murmures</h3>
+    <img src="icones/foret.png" alt="Forêt" class="icone-territoire">
+    <p><strong>Contrôlé par :</strong> <span id="controle-foret">Neutre</span></p>
+    <p><strong>État :</strong> <span id="etat-foret">Intact</span></p>
+    <input type="checkbox" id="avantage-foret" disabled>
+    <label for="avantage-foret">Unités furtives</label>
+    <div class="dilemme">
+      <p><strong>Dilemme :</strong> Un druide propose un pacte.</p>
+      <button onclick="resoudreDilemme('foret', 'accepter')">Accepter (+2 corruption)</button>
+      <button onclick="resoudreDilemme('foret', 'refuser')">Refuser (forêt hostile)</button>
+    </div>
+    <p id="risque-foret"></p>
+  </div>
+
+  <!-- Scripts -->
+  <script>
+    // Résout un dilemme et met à jour le territoire
+    function resoudreDilemme(id, choix) {
+      if (id === "citadelle") {
+        if (choix === "aider") {
+          document.getElementById("etat-" + id).textContent = "Allié (Artefact)";
+          document.getElementById("avantage-" + id).checked = true;
+          document.getElementById("risque-" + id).textContent = "Aucun risque.";
+        } else if (choix === "bannir") {
+          document.getElementById("etat-" + id).textContent = "Hanté";
+          document.getElementById("risque-" + id).textContent = "Unité spectrale chaque tour.";
+        }
+        // Désactive les boutons après choix
+        document.querySelectorAll(`#${id} .dilemme button`).forEach(bouton => {
+          bouton.disabled = true;
+        });
+      }
+      // Ajoute d'autres territoires ici...
+    }
+
+    // Sauvegarde la campagne
+    function sauvegarderCampagne() {
+      const territoires = [];
+      document.querySelectorAll('.territoire').forEach(territoire => {
+        territoires.push({
+          id: territoire.id,
+          nom: territoire.querySelector('h3').textContent,
+          controle: territoire.querySelector(`#controle-${territoire.id}`).textContent,
+          etat: territoire.querySelector(`#etat-${territoire.id}`).textContent,
+          avantage: territoire.querySelector('input[type="checkbox"]').checked,
+          dilemmeResolu: territoire.querySelector('.dilemme button[disabled]') ? territoire.querySelector('.dilemme button[disabled]').textContent : null
+        });
+      });
+
+      const ressources = {
+        or: document.getElementById('ressource-or').textContent,
+        influence: document.getElementById('ressource-influence').textContent,
+        connaissance: document.getElementById('ressource-connaissance').textContent
+      };
+
+      const campagne = { territoires, ressources, date: new Date().toISOString() };
+      const campagneHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head><title>Sauvegarde Campagne</title></head>
+        <body>
+          <h1>Sauvegarde: ${campagne.date}</h1>
+          <pre>${JSON.stringify(campagne, null, 2)}</pre>
+          <script>function rechargerCampagne(){return ${JSON.stringify(campagne)};}</script>
+        </body>
+        </html>
+      `;
+
+      const blob = new Blob([campagneHTML], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `campagne-${new Date().toISOString().slice(0, 10)}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // Import une campagne
+    function importerCampagne(event) {
+      const fichier = event.target.files[0];
+      if (!fichier) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(e.target.result, 'text/html');
+        const script = doc.querySelector('script');
+        if (!script) { alert("Fichier invalide !"); return; }
+        const campagne = JSON.parse(script.textContent.match(/return (.*);/)[1]);
+        campagne.territoires.forEach(territoire => {
+          const element = document.getElementById(territoire.id);
+          if (element) {
+            element.querySelector(`#controle-${territoire.id}`).textContent = territoire.controle;
+            element.querySelector(`#etat-${territoire.id}`).textContent = territoire.etat;
+            element.querySelector('input[type="checkbox"]').checked = territoire.avantage;
+            if (territoire.dilemmeResolu) {
+              const boutons = element.querySelectorAll('.dilemme button');
+              boutons.forEach(bouton => {
+                if (bouton.textContent === territoire.dilemmeResolu) {
+                  bouton.disabled = true;
+                  bouton.style.backgroundColor = "#555";
+                }
+              });
+            }
+          }
+        });
+        document.getElementById('ressource-or').textContent = campagne.ressources.or;
+        document.getElementById('ressource-influence').textContent = campagne.ressources.influence;
+        document.getElementById('ressource-connaissance').textContent = campagne.ressources.connaissance;
+        alert("Campagne importée !");
+      };
+      reader.readAsText(fichier);
+    }
+  </script>
+</body>
+</html>
 
