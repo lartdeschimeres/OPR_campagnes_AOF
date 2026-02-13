@@ -6,7 +6,7 @@ Une campagne narrative pour **Age of Fantasy (OnePageRules)**, avec :
 - Un système de **sauvegarde/import en HTML**.
 
 ## Comment utiliser ?
-1. Ouvre [`index.html`](https://[ton-username].github.io/campagne-dark-fantasy-opr/) dans ton navigateur.
+1. Ouvre [la campagne](https://lartdeschimeres.github.io/campagne-dark-fantasy-opr/) dans ton navigateur.
 2. Clique sur un territoire pour interagir.
 3. Utilise les boutons **"Sauvegarder"** et **"Importer"** pour gérer tes parties.
 
