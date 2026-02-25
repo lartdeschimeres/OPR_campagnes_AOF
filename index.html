@@ -42,7 +42,6 @@
     .territoire.controle-j5 { border-color: #f78fb3; }
     .territoire.controle-j6 { border-color: #81ecec; }
     .territoire.neutre { border-color: #777; }
-    .territoire.hante { background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('icones/fond-hante.jpg'); }
     .icone-territoire {
       width: 80px;
       height: 80px;
@@ -195,10 +194,10 @@
 
     let evenements = [
       { id: 1, titre: "Révolte Paysanne", description: "Les paysans se rebellent ! Perdez 1 ressource par territoire contrôlé.", effet: "perte_ressources" },
-      { id: 2, titre: "Invasion Démoniaque", description: "Un portail s'ouvre ! Une unité démoniaque apparaît sur un territoire aléatoire.", effet: "unité_démon" },
-      { id: 3, titre: "Bénédiction Divine", description: "Un miracle se produit : une unité guérit toutes ses blessures.", effet: "soin_unité" },
+      { id: 2, titre: "Invasion Démoniaque", description: "Un portail s'ouvre ! Une unité démoniaque apparaît sur un territoire aléatoire.", effet: "unite_demon" },
+      { id: 3, titre: "Bénédiction Divine", description: "Un miracle se produit : une unité guérit toutes ses blessures.", effet: "soin_unite" },
       { id: 4, titre: "Épidémie", description: "Une maladie se propage : toutes les unités perdent 1 en endurance.", effet: "malus_endurance" },
-      { id: 5, titre: "Découverte d'un Artefact", description: "Un trésor est trouvé : piochez un artefact aléatoire.", effet: "artefact_aléatoire" },
+      { id: 5, titre: "Découverte d'un Artefact", description: "Un trésor est trouvé : piochez un artefact aléatoire.", effet: "artefact_aleatoire" },
       { id: 6, titre: "Trahison", description: "Un allié se retourne contre vous ! Choisissez un joueur : il attaque un de vos territoires.", effet: "trahison" }
     ];
 
@@ -212,12 +211,12 @@
       afficherTerritoires();
       afficherRessourcesGlobales();
       majLog(`--- Tour ${tourActuel} : Début de la campagne ---`);
-      nouveauTour();
     }
 
     // Affichage des joueurs
     function afficherJoueurs() {
       const container = document.getElementById("joueurs");
+      if (!container) return;
       container.innerHTML = "";
       joueurs.forEach(joueur => {
         const div = document.createElement("div");
@@ -238,14 +237,16 @@
     // Affichage des territoires
     function afficherTerritoires() {
       const container = document.getElementById("territoires");
+      if (!container) return;
       container.innerHTML = "";
       territoires.forEach(territoire => {
         const div = document.createElement("div");
         div.id = territoire.id;
         div.className = `territoire ${territoire.controle}`;
+        div.onclick = () => ouvrirDilemme(territoire.id);
         div.innerHTML = `
           <h3>${territoire.nom}</h3>
-          <img src="${territoire.icone}" alt="${territoire.nom}" class="icone-territoire">
+          <img src="${territoire.icone}" alt="${territoire.nom}" class="icone-territoire" onerror="this.src='icones/default.png'">
           <p><strong>Contrôlé par:</strong> <span id="controle-${territoire.id}">${territoire.controle === "neutre" ? "Neutre" : `Joueur ${territoire.controle}`}</span></p>
           <p><strong>État:</strong> <span id="etat-${territoire.id}">${territoire.etat}</span></p>
           <div class="avantage">
@@ -255,7 +256,7 @@
           <div class="dilemme">
             <p><strong>Dilemme:</strong> ${territoire.dilemme}</p>
             ${territoire.options.map((option, i) => `
-              <button onclick="resoudreDilemme('${territoire.id}', ${i})" id="option-${territoire.id}-${i}">${option}</button>
+              <button onclick="event.stopPropagation(); resoudreDilemme('${territoire.id}', ${i})" id="option-${territoire.id}-${i}">${option}</button>
             `).join("")}
           </div>
           <p class="risque" id="risque-${territoire.id}">${territoire.risque}</p>
@@ -267,6 +268,7 @@
     // Affichage des ressources globales
     function afficherRessourcesGlobales() {
       const container = document.getElementById("ressources-globales");
+      if (!container) return;
       container.innerHTML = `
         <p><strong>Tour actuel:</strong> ${tourActuel}</p>
         <p><strong>Phase:</strong> <span id="phase-nom">${getPhaseNom(phaseActuelle)}</span></p>
@@ -282,18 +284,26 @@
     // Mise à jour du log
     function majLog(message) {
       const log = document.getElementById("log");
+      if (!log) return;
       log.innerHTML += `<p>> ${message}</p>`;
       log.scrollTop = log.scrollHeight;
     }
 
-    // Résoudre un dilemme
+    // Ouvre le dilemme d'un territoire
+    function ouvrirDilemme(territoireId) {
+      const territoire = territoires.find(t => t.id === territoireId);
+      alert(`Dilemme pour ${territoire.nom}: ${territoire.dilemme}`);
+    }
+
+    // Résout un dilemme
     function resoudreDilemme(territoireId, optionIndex) {
       const territoire = territoires.find(t => t.id === territoireId);
-      const joueurActuel = joueurs.find(j => j.id === parseInt(document.getElementById("joueur-actuel").dataset.id));
+      const joueurActuel = joueurs[0]; // À adapter selon le joueur actuel
 
       // Désactive les boutons
       territoire.options.forEach((_, i) => {
-        document.getElementById(`option-${territoireId}-${i}`).disabled = true;
+        const bouton = document.getElementById(`option-${territoireId}-${i}`);
+        if (bouton) bouton.disabled = true;
       });
 
       // Applique l'effet du dilemme
@@ -321,10 +331,7 @@
             majLog(`${joueurActuel.nom} refuse le pacte : la forêt devient hostile.`);
           }
           break;
-        // Ajoute les autres territoires ici...
-        default:
-          territoire.etat = "modifié";
-          majLog(`${joueurActuel.nom} résout un dilemme sur ${territoire.nom}.`);
+        // Ajoute les autres cas ici...
       }
 
       // Met à jour le contrôle
@@ -336,12 +343,6 @@
       document.getElementById(`etat-${territoireId}`).textContent = territoire.etat;
       document.getElementById(`risque-${territoireId}`).textContent = territoire.risque;
       document.getElementById(`territoires-${joueurActuel.id}`).textContent = joueurActuel.territoires.length;
-
-      // Passe à la phase suivante
-      phaseActuelle = 2; // Affrontements
-      document.getElementById("phase-actuelle").textContent = `Phase : ${getPhaseNom(phaseActuelle)}`;
-      document.getElementById("phase-nom").textContent = getPhaseNom(phaseActuelle);
-      majLog(`--- Phase 2 : Affrontements ---`);
     }
 
     // Nouveau tour
@@ -382,7 +383,7 @@
             majLog(`${joueur.nom} perd ${joueur.territoires.length} or à cause de la révolte !`);
           });
           break;
-        case "unité_démon":
+        case "unite_demon":
           const territoireAleatoire = territoires[Math.floor(Math.random() * territoires.length)];
           majLog(`Une unité démoniaque apparaît sur ${territoireAleatoire.nom} !`);
           break;
