@@ -1,54 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Campagne Dark Fantasy - Les Royaumes Déchus</title>
   <style>
     body {
       background-color: #111;
       color: white;
-      font-family: Arial;
+      font-family: 'Arial', sans-serif;
       padding: 20px;
+      margin: 0;
+    }
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
     }
     .territoire {
-      width: 250px;
-      height: 350px;
+      width: 220px;
+      height: 300px;
       border: 2px solid #555;
       border-radius: 10px;
       padding: 10px;
-      margin: 10px;
       background-color: #222;
-      display: inline-block;
-      vertical-align: top;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.3s;
     }
     .territoire:hover {
       background-color: #333;
-      cursor: pointer;
+      transform: scale(1.02);
     }
+    .territoire.controle-j1 { border-color: #ff6b6b; }
+    .territoire.controle-j2 { border-color: #4ecdc4; }
+    .territoire.controle-j3 { border-color: #ffe66d; }
+    .territoire.controle-j4 { border-color: #a55eea; }
+    .territoire.controle-j5 { border-color: #f78fb3; }
+    .territoire.controle-j6 { border-color: #81ecec; }
+    .territoire.neutre { border-color: #777; }
+    .territoire.hante { background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('icones/fond-hante.jpg'); }
     .icone-territoire {
       width: 80px;
       height: 80px;
-      margin-bottom: 10px;
+      margin: 10px 0;
       border-radius: 5px;
+      object-fit: contain;
     }
-    .ressources {
-      margin: 20px;
-      padding: 10px;
-      border: 1px solid #555;
-      border-radius: 5px;
-      display: inline-block;
+    .dilemme, .avantage, .risque {
+      width: 100%;
+      margin: 5px 0;
+      text-align: center;
     }
     button {
-      margin: 5px;
+      margin: 3px;
       padding: 5px 10px;
       background-color: #444;
       color: white;
       border: none;
       border-radius: 3px;
       cursor: pointer;
+      font-size: 12px;
     }
     button:disabled {
       background-color: #555;
       cursor: not-allowed;
+    }
+    .ressources {
+      background-color: #333;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 20px auto;
+      width: fit-content;
+    }
+    .joueurs {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin: 20px 0;
+    }
+    .joueur {
+      background-color: #333;
+      padding: 10px;
+      border-radius: 10px;
+      min-width: 200px;
+    }
+    .evenement {
+      width: 200px;
+      height: 150px;
+      background-color: #333;
+      border-radius: 10px;
+      padding: 10px;
+      margin: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    #log {
+      background-color: #333;
+      padding: 15px;
+      border-radius: 10px;
+      margin: 20px auto;
+      max-width: 800px;
+      height: 150px;
+      overflow-y: auto;
+    }
+    .phase {
+      background-color: #444;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+      text-align: center;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -56,101 +123,304 @@
   <h1>Les Royaumes Déchus</h1>
 
   <!-- Boutons de sauvegarde/import -->
-  <div>
+  <div style="text-align: center; margin: 20px 0;">
     <button onclick="sauvegarderCampagne()">Sauvegarder la Campagne</button>
     <button onclick="document.getElementById('fichier-import').click()">Importer une Campagne</button>
     <input type="file" id="fichier-import" style="display: none;" accept=".html" onchange="importerCampagne(event)">
+    <button onclick="nouveauTour()">Commencer un Nouveau Tour</button>
   </div>
 
-  <!-- Ressources -->
+  <!-- Affichage de la phase actuelle -->
+  <div class="phase" id="phase-actuelle">Phase : Préparation</div>
+
+  <!-- Ressources globales -->
   <div class="ressources">
-    <h2>Ressources</h2>
-    <p>Or : <span id="ressource-or">5</span></p>
-    <p>Influence : <span id="ressource-influence">3</span></p>
-    <p>Connaissance : <span id="ressource-connaissance">2</span></p>
+    <h2>Ressources Globales</h2>
+    <div id="ressources-globales">
+      <!-- Dynamique via JS -->
+    </div>
+  </div>
+
+  <!-- Joueurs et leurs ressources -->
+  <div class="joueurs" id="joueurs">
+    <!-- Généré dynamiquement -->
   </div>
 
   <!-- Territoires -->
-  <div id="citadelle" class="territoire">
-    <h3>🏰 Citadelle des Lamentations</h3>
-    <img src="icones/citadelle.png" alt="Citadelle" class="icone-territoire">
-    <p><strong>Contrôlé par :</strong> <span id="controle-citadelle">Neutre</span></p>
-    <p><strong>État :</strong> <span id="etat-citadelle">Intact</span></p>
-    <input type="checkbox" id="avantage-citadelle" disabled>
-    <label for="avantage-citadelle">+2 en défense</label>
-    <div class="dilemme">
-      <p><strong>Dilemme :</strong> Les esprits demandent vengeance.</p>
-      <button onclick="resoudreDilemme('citadelle', 'aider')">Aider les esprits</button>
-      <button onclick="resoudreDilemme('citadelle', 'bannir')">Bannir les esprits</button>
-    </div>
-    <p id="risque-citadelle"></p>
+  <div class="container" id="territoires">
+    <!-- Généré dynamiquement -->
   </div>
 
-  <div id="foret" class="territoire">
-    <h3>🌳 Forêt des Murmures</h3>
-    <img src="icones/foret.png" alt="Forêt" class="icone-territoire">
-    <p><strong>Contrôlé par :</strong> <span id="controle-foret">Neutre</span></p>
-    <p><strong>État :</strong> <span id="etat-foret">Intact</span></p>
-    <input type="checkbox" id="avantage-foret" disabled>
-    <label for="avantage-foret">Unités furtives</label>
-    <div class="dilemme">
-      <p><strong>Dilemme :</strong> Un druide propose un pacte.</p>
-      <button onclick="resoudreDilemme('foret', 'accepter')">Accepter (+2 corruption)</button>
-      <button onclick="resoudreDilemme('foret', 'refuser')">Refuser (forêt hostile)</button>
+  <!-- Événement actuel -->
+  <div style="text-align: center; margin: 20px 0;">
+    <h2>Événement en cours</h2>
+    <div class="evenement" id="evenement-actuel">
+      <h3 id="titre-evenement">Aucun événement</h3>
+      <p id="description-evenement">La campagne commence...</p>
+      <button onclick="resoudreEvenement()" id="bouton-evenement" style="display: none;">Appliquer</button>
     </div>
-    <p id="risque-foret"></p>
+  </div>
+
+  <!-- Log des actions -->
+  <div id="log">
+    <h2>Journal de Campagne</h2>
+    <p>Bienvenue dans les Royaumes Déchus. Que la corruption commence...</p>
   </div>
 
   <!-- Scripts -->
   <script>
-    // Résout un dilemme et met à jour le territoire
-    function resoudreDilemme(id, choix) {
-      if (id === "citadelle") {
-        if (choix === "aider") {
-          document.getElementById("etat-" + id).textContent = "Allié (Artefact)";
-          document.getElementById("avantage-" + id).checked = true;
-          document.getElementById("risque-" + id).textContent = "Aucun risque.";
-        } else if (choix === "bannir") {
-          document.getElementById("etat-" + id).textContent = "Hanté";
-          document.getElementById("risque-" + id).textContent = "Unité spectrale chaque tour.";
-        }
-        // Désactive les boutons après choix
-        document.querySelectorAll(`#${id} .dilemme button`).forEach(bouton => {
-          bouton.disabled = true;
-        });
-      }
-      // Ajoute d'autres territoires ici...
+    // Données initiales
+    let joueurs = [
+      { id: 1, nom: "Joueur 1", or: 5, influence: 3, connaissance: 2, corruption: 0, territoires: [], couleur: "#ff6b6b" },
+      { id: 2, nom: "Joueur 2", or: 5, influence: 3, connaissance: 2, corruption: 0, territoires: [], couleur: "#4ecdc4" },
+      { id: 3, nom: "Joueur 3", or: 5, influence: 3, connaissance: 2, corruption: 0, territoires: [], couleur: "#ffe66d" },
+      { id: 4, nom: "Joueur 4", or: 5, influence: 3, connaissance: 2, corruption: 0, territoires: [], couleur: "#a55eea" },
+      { id: 5, nom: "Joueur 5", or: 5, influence: 3, connaissance: 2, corruption: 0, territoires: [], couleur: "#f78fb3" },
+      { id: 6, nom: "Joueur 6", or: 5, influence: 3, connaissance: 2, corruption: 0, territoires: [], couleur: "#81ecec" }
+    ];
+
+    let territoires = [
+      { id: "citadelle", nom: "Citadelle des Lamentations", controle: "neutre", etat: "intact", avantage: "+2 en défense", dilemme: "Les esprits demandent vengeance.", options: ["Aider (artefact)", "Bannir (hanté)"], risque: "", icone: "icones/citadelle.png", adjacents: ["foret", "montagnes"] },
+      { id: "foret", nom: "Forêt des Murmures", controle: "neutre", etat: "intact", avantage: "Unités furtives", dilemme: "Un druide propose un pacte.", options: ["Accepter (+2 corruption)", "Refuser (hostile)"], risque: "", icone: "icones/foret.png", adjacents: ["citadelle", "marais", "plaines"] },
+      { id: "marais", nom: "Marais de la Chair Pourrie", controle: "neutre", etat: "intact", avantage: "Crée 1 zombie/tour", dilemme: "Boire l'élixir de l'alchimiste ?", options: ["Boire (+1 force, mutation)", "Refuser (perd avantage)"], risque: "", icone: "icones/marais.png", adjacents: ["foret", "plaines", "autel"] },
+      { id: "montagnes", nom: "Montagnes des Nains", controle: "neutre", etat: "intact", avantage: "Accès aux forges", dilemme: "Payer le tribut des nains ?", options: ["Payer (2 or)", "Refuser (révolte)"], risque: "", icone: "icones/montagnes.png", adjacents: ["citadelle", "plaines", "ruines"] },
+      { id: "plaines", nom: "Plaines Sanglantes", controle: "neutre", etat: "intact", avantage: "+1 ressource/tour", dilemme: "Piller les ressources ?", options: ["Piller (+3 or, horde hostile)", "Épargner (alliance)"], risque: "", icone: "icones/plaines.png", adjacents: ["foret", "marais", "montagnes", "cite"] },
+      { id: "autel", nom: "Autel du Dieu Oubli", controle: "neutre", etat: "intact", avantage: "Invocation d'un démon", dilemme: "Sacrifier une unité ?", options: ["Sacrifier (démon)", "Refuser (malédiction)"], risque: "", icone: "icones/autel.png", adjacents: ["marais", "cite", "abysse"] },
+      { id: "cite", nom: "Cité des Ombres", controle: "neutre", etat: "intact", avantage: "+2 or/tour", dilemme: "Négocier avec les marchands ?", options: ["Négocier (+2 or)", "Piller (hostile)"], risque: "", icone: "icones/cite.png", adjacents: ["plaines", "autel", "lac"] },
+      { id: "ruines", nom: "Ruines de Vorthûl", controle: "neutre", etat: "intact", avantage: "Artefact aléatoire", dilemme: "Explorer les ruines ?", options: ["Explorer (artefact, risque)", "Éviter (rien)"], risque: "", icone: "icones/ruines.png", adjacents: ["montagnes", "desert"] },
+      { id: "abysse", nom: "Abysse de Khorgath", controle: "neutre", etat: "intact", avantage: "Unité démoniaque", dilemme: "Ouvrir le portail ?", options: ["Ouvrir (démon, +3 corruption)", "Sceller (rien)"], risque: "", icone: "icones/abysse.png", adjacents: ["autel", "lac"] },
+      { id: "desert", nom: "Désert des Âmes", controle: "neutre", etat: "intact", avantage: "Immunité au feu", dilemme: "Chercher l'oasis ?", options: ["Chercher (ressource, mirage)", "Éviter (rien)"], icone: "icones/desert.png", adjacents: ["ruines", "lac"] },
+      { id: "lac", nom: "Lac Maudit", controle: "neutre", etat: "intact", avantage: "Vision nocturne", dilemme: "Plonger dans le lac ?", options: ["Plonger (artefact, malédiction)", "Refuser (rien)"], icone: "icones/lac.png", adjacents: ["cite", "abysse", "desert"] }
+    ];
+
+    let evenements = [
+      { id: 1, titre: "Révolte Paysanne", description: "Les paysans se rebellent ! Perdez 1 ressource par territoire contrôlé.", effet: "perte_ressources" },
+      { id: 2, titre: "Invasion Démoniaque", description: "Un portail s'ouvre ! Une unité démoniaque apparaît sur un territoire aléatoire.", effet: "unité_démon" },
+      { id: 3, titre: "Bénédiction Divine", description: "Un miracle se produit : une unité guérit toutes ses blessures.", effet: "soin_unité" },
+      { id: 4, titre: "Épidémie", description: "Une maladie se propage : toutes les unités perdent 1 en endurance.", effet: "malus_endurance" },
+      { id: 5, titre: "Découverte d'un Artefact", description: "Un trésor est trouvé : piochez un artefact aléatoire.", effet: "artefact_aléatoire" },
+      { id: 6, titre: "Trahison", description: "Un allié se retourne contre vous ! Choisissez un joueur : il attaque un de vos territoires.", effet: "trahison" }
+    ];
+
+    let phaseActuelle = 0; // 0: Préparation, 1: Exploration, 2: Affrontements, 3: Réactions
+    let tourActuel = 1;
+    let evenementActuel = null;
+
+    // Initialisation
+    function initCampagne() {
+      afficherJoueurs();
+      afficherTerritoires();
+      afficherRessourcesGlobales();
+      majLog(`--- Tour ${tourActuel} : Début de la campagne ---`);
+      nouveauTour();
     }
 
-    // Sauvegarde la campagne
-    function sauvegarderCampagne() {
-      const territoires = [];
-      document.querySelectorAll('.territoire').forEach(territoire => {
-        territoires.push({
-          id: territoire.id,
-          nom: territoire.querySelector('h3').textContent,
-          controle: territoire.querySelector(`#controle-${territoire.id}`).textContent,
-          etat: territoire.querySelector(`#etat-${territoire.id}`).textContent,
-          avantage: territoire.querySelector('input[type="checkbox"]').checked,
-          dilemmeResolu: territoire.querySelector('.dilemme button[disabled]') ? territoire.querySelector('.dilemme button[disabled]').textContent : null
+    // Affichage des joueurs
+    function afficherJoueurs() {
+      const container = document.getElementById("joueurs");
+      container.innerHTML = "";
+      joueurs.forEach(joueur => {
+        const div = document.createElement("div");
+        div.className = "joueur";
+        div.style.borderLeft = `5px solid ${joueur.couleur}`;
+        div.innerHTML = `
+          <h3>${joueur.nom}</h3>
+          <p><strong>Or:</strong> <span id="or-${joueur.id}">${joueur.or}</span></p>
+          <p><strong>Influence:</strong> <span id="influence-${joueur.id}">${joueur.influence}</span></p>
+          <p><strong>Connaissance:</strong> <span id="connaissance-${joueur.id}">${joueur.connaissance}</span></p>
+          <p><strong>Corruption:</strong> <span id="corruption-${joueur.id}">${joueur.corruption}/10</span></p>
+          <p><strong>Territoires:</strong> <span id="territoires-${joueur.id}">${joueur.territoires.length}</span></p>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // Affichage des territoires
+    function afficherTerritoires() {
+      const container = document.getElementById("territoires");
+      container.innerHTML = "";
+      territoires.forEach(territoire => {
+        const div = document.createElement("div");
+        div.id = territoire.id;
+        div.className = `territoire ${territoire.controle}`;
+        div.innerHTML = `
+          <h3>${territoire.nom}</h3>
+          <img src="${territoire.icone}" alt="${territoire.nom}" class="icone-territoire">
+          <p><strong>Contrôlé par:</strong> <span id="controle-${territoire.id}">${territoire.controle === "neutre" ? "Neutre" : `Joueur ${territoire.controle}`}</span></p>
+          <p><strong>État:</strong> <span id="etat-${territoire.id}">${territoire.etat}</span></p>
+          <div class="avantage">
+            <input type="checkbox" id="avantage-${territoire.id}" ${territoire.etat === "actif" ? "checked" : ""} disabled>
+            <label for="avantage-${territoire.id}">${territoire.avantage}</label>
+          </div>
+          <div class="dilemme">
+            <p><strong>Dilemme:</strong> ${territoire.dilemme}</p>
+            ${territoire.options.map((option, i) => `
+              <button onclick="resoudreDilemme('${territoire.id}', ${i})" id="option-${territoire.id}-${i}">${option}</button>
+            `).join("")}
+          </div>
+          <p class="risque" id="risque-${territoire.id}">${territoire.risque}</p>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // Affichage des ressources globales
+    function afficherRessourcesGlobales() {
+      const container = document.getElementById("ressources-globales");
+      container.innerHTML = `
+        <p><strong>Tour actuel:</strong> ${tourActuel}</p>
+        <p><strong>Phase:</strong> <span id="phase-nom">${getPhaseNom(phaseActuelle)}</span></p>
+      `;
+    }
+
+    // Nom de la phase
+    function getPhaseNom(phase) {
+      const phases = ["Préparation", "Exploration", "Affrontements", "Réactions"];
+      return phases[phase];
+    }
+
+    // Mise à jour du log
+    function majLog(message) {
+      const log = document.getElementById("log");
+      log.innerHTML += `<p>> ${message}</p>`;
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // Résoudre un dilemme
+    function resoudreDilemme(territoireId, optionIndex) {
+      const territoire = territoires.find(t => t.id === territoireId);
+      const joueurActuel = joueurs.find(j => j.id === parseInt(document.getElementById("joueur-actuel").dataset.id));
+
+      // Désactive les boutons
+      territoire.options.forEach((_, i) => {
+        document.getElementById(`option-${territoireId}-${i}`).disabled = true;
+      });
+
+      // Applique l'effet du dilemme
+      switch(territoireId) {
+        case "citadelle":
+          if (optionIndex === 0) {
+            territoire.etat = "allié";
+            territoire.risque = "Aucun.";
+            joueurActuel.corruption += 0;
+            majLog(`${joueurActuel.nom} aide les esprits de la Citadelle et obtient un artefact.`);
+          } else {
+            territoire.etat = "hanté";
+            territoire.risque = "Unité spectrale chaque tour.";
+            joueurActuel.corruption += 1;
+            majLog(`${joueurActuel.nom} bannit les esprits : la Citadelle est maintenant hantée !`);
+          }
+          break;
+        case "foret":
+          if (optionIndex === 0) {
+            territoire.etat = "corrompu";
+            joueurActuel.corruption += 2;
+            majLog(`${joueurActuel.nom} accepte le pacte du druide (+2 corruption).`);
+          } else {
+            territoire.etat = "hostile";
+            majLog(`${joueurActuel.nom} refuse le pacte : la forêt devient hostile.`);
+          }
+          break;
+        // Ajoute les autres territoires ici...
+        default:
+          territoire.etat = "modifié";
+          majLog(`${joueurActuel.nom} résout un dilemme sur ${territoire.nom}.`);
+      }
+
+      // Met à jour le contrôle
+      territoire.controle = joueurActuel.id;
+      joueurActuel.territoires.push(territoireId);
+
+      // Met à jour l'affichage
+      document.getElementById(`controle-${territoireId}`).textContent = `Joueur ${joueurActuel.id}`;
+      document.getElementById(`etat-${territoireId}`).textContent = territoire.etat;
+      document.getElementById(`risque-${territoireId}`).textContent = territoire.risque;
+      document.getElementById(`territoires-${joueurActuel.id}`).textContent = joueurActuel.territoires.length;
+
+      // Passe à la phase suivante
+      phaseActuelle = 2; // Affrontements
+      document.getElementById("phase-actuelle").textContent = `Phase : ${getPhaseNom(phaseActuelle)}`;
+      document.getElementById("phase-nom").textContent = getPhaseNom(phaseActuelle);
+      majLog(`--- Phase 2 : Affrontements ---`);
+    }
+
+    // Nouveau tour
+    function nouveauTour() {
+      tourActuel++;
+      phaseActuelle = 1; // Exploration
+      document.getElementById("phase-actuelle").textContent = `Phase : ${getPhaseNom(phaseActuelle)}`;
+      document.getElementById("phase-nom").textContent = getPhaseNom(phaseActuelle);
+      majLog(`--- Tour ${tourActuel} : Phase 1 - Exploration ---`);
+
+      // Réactive les boutons de dilemme
+      territoires.forEach(territoire => {
+        territoire.options.forEach((_, i) => {
+          const bouton = document.getElementById(`option-${territoire.id}-${i}`);
+          if (bouton) bouton.disabled = false;
         });
       });
 
-      const ressources = {
-        or: document.getElementById('ressource-or').textContent,
-        influence: document.getElementById('ressource-influence').textContent,
-        connaissance: document.getElementById('ressource-connaissance').textContent
+      // Pioche un événement aléatoire
+      tirerEvenement();
+    }
+
+    // Tirer un événement aléatoire
+    function tirerEvenement() {
+      evenementActuel = evenements[Math.floor(Math.random() * evenements.length)];
+      document.getElementById("titre-evenement").textContent = evenementActuel.titre;
+      document.getElementById("description-evenement").textContent = evenementActuel.description;
+      document.getElementById("bouton-evenement").style.display = "block";
+      majLog(`Événement : ${evenementActuel.titre} - ${evenementActuel.description}`);
+    }
+
+    // Résoudre l'événement
+    function resoudreEvenement() {
+      switch(evenementActuel.effet) {
+        case "perte_ressources":
+          joueurs.forEach(joueur => {
+            joueur.or = Math.max(0, joueur.or - joueur.territoires.length);
+            majLog(`${joueur.nom} perd ${joueur.territoires.length} or à cause de la révolte !`);
+          });
+          break;
+        case "unité_démon":
+          const territoireAleatoire = territoires[Math.floor(Math.random() * territoires.length)];
+          majLog(`Une unité démoniaque apparaît sur ${territoireAleatoire.nom} !`);
+          break;
+        // Ajoute les autres effets ici...
+        default:
+          majLog(`Événement résolu : ${evenementActuel.titre}.`);
+      }
+      document.getElementById("bouton-evenement").style.display = "none";
+    }
+
+    // Sauvegarder la campagne
+    function sauvegarderCampagne() {
+      const campagne = {
+        joueurs: joueurs,
+        territoires: territoires,
+        tourActuel: tourActuel,
+        phaseActuelle: phaseActuelle,
+        date: new Date().toISOString()
       };
 
-      const campagne = { territoires, ressources, date: new Date().toISOString() };
       const campagneHTML = `
         <!DOCTYPE html>
         <html>
-        <head><title>Sauvegarde Campagne</title></head>
+        <head>
+          <title>Sauvegarde - Les Royaumes Déchus</title>
+        </head>
         <body>
-          <h1>Sauvegarde: ${campagne.date}</h1>
-          <pre>${JSON.stringify(campagne, null, 2)}</pre>
-          <script>function rechargerCampagne(){return ${JSON.stringify(campagne)};}</script>
+          <h1>Sauvegarde : ${campagne.date}</h1>
+          <h2>Tour ${campagne.tourActuel}, Phase ${getPhaseNom(campagne.phaseActuelle)}</h2>
+          <h3>Joueurs</h3>
+          <pre>${JSON.stringify(campagne.joueurs, null, 2)}</pre>
+          <h3>Territoires</h3>
+          <pre>${JSON.stringify(campagne.territoires, null, 2)}</pre>
+          <script>
+            function rechargerCampagne() {
+              return ${JSON.stringify(campagne)};
+            }
+          </script>
         </body>
         </html>
       `;
@@ -159,47 +429,43 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `campagne-${new Date().toISOString().slice(0, 10)}.html`;
+      a.download = `campagne-royumes-dechus-tour${tourActuel}.html`;
       a.click();
       URL.revokeObjectURL(url);
+      majLog(`Campagne sauvegardée (Tour ${tourActuel}).`);
     }
 
-    // Import une campagne
+    // Importer une campagne
     function importerCampagne(event) {
       const fichier = event.target.files[0];
       if (!fichier) return;
+
       const reader = new FileReader();
       reader.onload = function(e) {
         const parser = new DOMParser();
         const doc = parser.parseFromString(e.target.result, 'text/html');
         const script = doc.querySelector('script');
-        if (!script) { alert("Fichier invalide !"); return; }
+        if (!script) {
+          alert("Fichier invalide !");
+          return;
+        }
+
         const campagne = JSON.parse(script.textContent.match(/return (.*);/)[1]);
-        campagne.territoires.forEach(territoire => {
-          const element = document.getElementById(territoire.id);
-          if (element) {
-            element.querySelector(`#controle-${territoire.id}`).textContent = territoire.controle;
-            element.querySelector(`#etat-${territoire.id}`).textContent = territoire.etat;
-            element.querySelector('input[type="checkbox"]').checked = territoire.avantage;
-            if (territoire.dilemmeResolu) {
-              const boutons = element.querySelectorAll('.dilemme button');
-              boutons.forEach(bouton => {
-                if (bouton.textContent === territoire.dilemmeResolu) {
-                  bouton.disabled = true;
-                  bouton.style.backgroundColor = "#555";
-                }
-              });
-            }
-          }
-        });
-        document.getElementById('ressource-or').textContent = campagne.ressources.or;
-        document.getElementById('ressource-influence').textContent = campagne.ressources.influence;
-        document.getElementById('ressource-connaissance').textContent = campagne.ressources.connaissance;
-        alert("Campagne importée !");
+        joueurs = campagne.joueurs;
+        territoires = campagne.territoires;
+        tourActuel = campagne.tourActuel;
+        phaseActuelle = campagne.phaseActuelle;
+
+        afficherJoueurs();
+        afficherTerritoires();
+        afficherRessourcesGlobales();
+        majLog(`--- Campagne chargée (Tour ${tourActuel}, Phase ${getPhaseNom(phaseActuelle)}) ---`);
       };
       reader.readAsText(fichier);
     }
+
+    // Initialisation au chargement
+    window.onload = initCampagne;
   </script>
 </body>
 </html>
-
